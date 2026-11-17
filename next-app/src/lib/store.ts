@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { newAccessKey, newToken } from "./auth";
+import { accessKeysMatch, hashAccessKey, newAccessKey, newToken } from "./auth";
 import { sql } from "./db";
 import {
   MAX_EVENT_UPLOAD_CHARS,
@@ -99,13 +99,15 @@ export async function createEvent(input: {
   }
 
   const hostToken = newToken(24);
+  const guestAccessKey = newAccessKey(12);
   const now = Date.now();
   const event: HuntEvent = {
     id: nanoid(12),
     title,
     companyLogo,
     hostToken,
-    guestAccessKey: newAccessKey(),
+    guestAccessKey,
+    guestAccessKeyHash: hashAccessKey(guestAccessKey),
     screenToken: newToken(18),
     status: "live",
     missions,
@@ -217,7 +219,7 @@ export async function joinGuest(eventId: string, accessKey: string, nameRaw: str
   const event = await loadEvent(eventId);
   if (!event) throw new Error("Событие не найдено");
   if (event.status === "closed") throw new Error("Охота закрыта");
-  if (accessKey.trim().toUpperCase() !== event.guestAccessKey) {
+  if (!accessKeysMatch(accessKey, event.guestAccessKey, event.guestAccessKeyHash)) {
     throw new Error("Неверный ключ события");
   }
   const name = nameRaw.trim();
@@ -331,12 +333,18 @@ export async function updateHostEvent(
   return toHostState(event);
 }
 
-export function publicEventMeta(event: HuntEvent) {
+/** Minimal meta only after a valid guest access key (no open read-by-id). */
+export function gatedEventMeta(event: HuntEvent) {
   return {
     id: event.id,
     title: event.title,
     status: event.status,
     missionCount: event.missions.length,
-    companyLogo: event.companyLogo,
   };
+}
+
+export function assertGuestAccess(event: HuntEvent, accessKey: string) {
+  if (!accessKeysMatch(accessKey, event.guestAccessKey, event.guestAccessKeyHash)) {
+    throw new Error("Неверный ключ события");
+  }
 }

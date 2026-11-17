@@ -23,10 +23,11 @@ env -u DATABASE_URL npm run dev
 
 ## Безопасность MVP
 
+- Создание события требует `EVENT_CREATE_SECRET` (Cursor Secrets) на проде; локально без него ок.
 - Токены ведущего / гостя / экрана в `Authorization: Bearer`, не в GET query.
-- Гостевой access key вводится вручную (или опционально в hash `#k=`), QR содержит только `/join/{id}`.
-- JPEG data-URL после сжатия на клиенте; лимит размера кадра и квота на событие.
-- Rate limit на create / join / submit / poll.
+- Гостевой access key 12 символов (+ hash), ввод вручную / `#k=`; QR только `/join/{id}`.
+- Метаданные события не отдаются по id без ключа.
+- JPEG data-URL после сжатия; квота на событие; durable rate limit в Postgres.
 
 ## Publish (Cursor Cloud Apps)
 

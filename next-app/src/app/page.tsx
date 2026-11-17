@@ -15,6 +15,7 @@ export default function HomePage() {
   const [title, setTitle] = useState("Корп · Фото-охота");
   const [missions, setMissions] = useState<Draft[]>(() => defaultMissionDrafts());
   const [logo, setLogo] = useState<string>("");
+  const [createSecret, setCreateSecret] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<"hero" | "setup">("hero");
@@ -55,6 +56,7 @@ export default function HomePage() {
         body: {
           title,
           companyLogo: logo || undefined,
+          createSecret: createSecret || undefined,
           missions: missions.map((m) => ({
             id: m.id,
             text: m.text.trim(),
@@ -62,6 +64,7 @@ export default function HomePage() {
           })),
         },
       });
+      if (createSecret) sessionStorage.setItem("ph-create-secret", createSecret);
       localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
       router.push(`/host/${res.eventId}`);
     } catch (e) {
@@ -138,6 +141,20 @@ export default function HomePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logo} alt="Лого" className="mt-3 h-16 w-auto rounded-lg object-contain" />
             ) : null}
+          </div>
+          <div>
+            <label className="label" htmlFor="createSecret">
+              Секрет создания (на проде — из Secrets)
+            </label>
+            <input
+              id="createSecret"
+              type="password"
+              className="field"
+              value={createSecret}
+              autoComplete="off"
+              onChange={(e) => setCreateSecret(e.target.value)}
+              placeholder="локально можно пусто"
+            />
           </div>
         </section>
 

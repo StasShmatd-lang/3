@@ -34,10 +34,11 @@ export function JoinInner() {
     if (saved) setToken(saved);
     const hk = readHashKey();
     if (hk) setAccessKey(hk);
-    void api<{ title: string }>(`/api/events/${eventId}`)
-      .then((r) => setMetaTitle(r.title))
-      .catch(() => undefined);
   }, [eventId]);
+
+  useEffect(() => {
+    if (guest?.title) setMetaTitle(guest.title);
+  }, [guest?.title]);
 
   const byMission = useMemo(() => {
     const map = new Map<string, GuestState["mySubmissions"][number]>();
@@ -98,11 +99,11 @@ export function JoinInner() {
             </label>
             <input
               id="key"
-              className="field uppercase tracking-[0.25em]"
+              className="field uppercase tracking-[0.18em]"
               value={accessKey}
-              maxLength={8}
+              maxLength={16}
               onChange={(e) => setAccessKey(e.target.value.toUpperCase())}
-              placeholder="ABC123"
+              placeholder="XXXXXXXXXXXX"
               autoComplete="off"
             />
           </div>
@@ -122,7 +123,7 @@ export function JoinInner() {
           <button
             type="button"
             className="btn-lime w-full"
-            disabled={busy || accessKey.length < 4 || name.trim().length < 2}
+            disabled={busy || accessKey.length < 10 || name.trim().length < 2}
             onClick={() => void join()}
           >
             {busy ? "Входим…" : "Начать охоту"}

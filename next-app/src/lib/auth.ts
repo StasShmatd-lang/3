@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export function bearerToken(req: Request): string | undefined {
   const h = req.headers.get("authorization");
@@ -15,12 +15,32 @@ export function newToken(bytes = 24) {
   return randomBytes(bytes).toString("base64url");
 }
 
-export function newAccessKey() {
+/** 12-char key (~60 bits) — short codes were flagged as guessable. */
+export function newAccessKey(length = 12) {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const buf = randomBytes(length);
   let out = "";
-  const buf = randomBytes(6);
-  for (let i = 0; i < 6; i++) out += alphabet[buf[i]! % alphabet.length];
+  for (let i = 0; i < length; i++) out += alphabet[buf[i]! % alphabet.length];
   return out;
+}
+
+export function hashAccessKey(key: string) {
+  return createHash("sha256").update(key.trim().toUpperCase()).digest("hex");
+}
+
+export function accessKeysMatch(provided: string, expectedPlain: string, expectedHash?: string) {
+  const got = provided.trim().toUpperCase();
+  if (expectedHash) {
+    const a = Buffer.from(hashAccessKey(got));
+    const b = Buffer.from(expectedHash);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  }
+  const want = expectedPlain.trim().toUpperCase();
+  const aa = Buffer.from(got);
+  const bb = Buffer.from(want);
+  if (aa.length !== bb.length) return false;
+  return timingSafeEqual(aa, bb);
 }
 
 export async function readBodyLimited(req: Request, maxBytes: number): Promise<unknown> {

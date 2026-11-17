@@ -29,7 +29,9 @@ export type HuntEvent = {
   title: string;
   companyLogo?: string;
   hostToken: string;
+  /** Shown only to host (via hostToken). Guests submit the plain key; server checks hash. */
   guestAccessKey: string;
+  guestAccessKeyHash: string;
   screenToken: string;
   status: MissionStatus;
   missions: Mission[];
