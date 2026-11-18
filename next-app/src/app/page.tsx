@@ -62,11 +62,21 @@ export default function HomePage() {
           })),
         },
       });
+      if (!res.eventId || !res.hostToken) {
+        throw new Error("Сервер не вернул ключ ведущего");
+      }
       if (createSecret) sessionStorage.setItem("ph-create-secret", createSecret);
-      localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
-      // Full navigation avoids Turbopack "Failed to load chunk" on soft router.push
-      // after a long-lived / HMR-rebuilt client session.
-      window.location.assign(`/host/${res.eventId}`);
+      try {
+        localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
+        sessionStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
+      } catch {
+        // storage may be blocked in some previews — hash handoff below still works
+      }
+      // Hash (not query) carries the host token once; avoids "Нет ключа ведущего"
+      // when localStorage is empty/partitioned. Full assign also avoids Turbopack chunk misses.
+      window.location.assign(
+        `/host/${res.eventId}#h=${encodeURIComponent(res.hostToken)}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось создать");
       setBusy(false);

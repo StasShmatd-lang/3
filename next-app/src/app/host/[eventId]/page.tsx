@@ -1,6 +1,7 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BrandFooter } from "@/components/BrandFooter";
@@ -9,21 +10,59 @@ import { usePollState } from "@/hooks/usePollState";
 import { api } from "@/lib/apiClient";
 import type { HostState } from "@/lib/types";
 
+function readHostTokenFromHash() {
+  if (typeof window === "undefined") return "";
+  const raw = window.location.hash.replace(/^#/, "");
+  const params = new URLSearchParams(raw);
+  return (params.get("h") || "").trim();
+}
+
+function loadStoredHostToken(eventId: string) {
+  try {
+    return (
+      localStorage.getItem(`ph-host:${eventId}`) ||
+      sessionStorage.getItem(`ph-host:${eventId}`) ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function persistHostToken(eventId: string, token: string) {
+  try {
+    localStorage.setItem(`ph-host:${eventId}`, token);
+    sessionStorage.setItem(`ph-host:${eventId}`, token);
+  } catch {
+    // ignore quota / privacy mode
+  }
+}
+
 export default function HostPage() {
   const params = useParams<{ eventId: string }>();
   const eventId = params.eventId;
   const [token, setToken] = useState<string>("");
+  const [paste, setPaste] = useState("");
+  const [booting, setBooting] = useState(true);
   const [base, setBase] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const { state, error, loading, setState } = usePollState(eventId, token || undefined);
   const host = state?.role === "host" ? (state as HostState) : null;
 
   useEffect(() => {
-    const t = localStorage.getItem(`ph-host:${eventId}`) || "";
-    setToken(t);
-    void api<{ base: string }>("/api/link-base").then((r) => setBase(r.base)).catch(() => {
-      setBase(window.location.origin);
-    });
+    const fromHash = readHostTokenFromHash();
+    const fromStore = loadStoredHostToken(eventId);
+    const next = fromHash || fromStore;
+    if (fromHash) {
+      persistHostToken(eventId, fromHash);
+      // Drop token from the address bar without reload (hash must not stay in history forever).
+      window.history.replaceState(null, "", `/host/${eventId}`);
+    }
+    setToken(next);
+    setBooting(false);
+    void api<{ base: string }>("/api/link-base")
+      .then((r) => setBase(r.base))
+      .catch(() => setBase(window.location.origin));
   }, [eventId]);
 
   const joinUrl = useMemo(() => (base ? `${base}/join/${eventId}` : ""), [base, eventId]);
@@ -55,11 +94,48 @@ export default function HostPage() {
     setState(res.state);
   }
 
+  function applyPaste() {
+    const t = paste.trim();
+    if (!t) return;
+    persistHostToken(eventId, t);
+    setToken(t);
+  }
+
+  if (booting) {
+    return (
+      <main className="shell">
+        <p className="text-[var(--mute)]">Открываем панель ведущего…</p>
+      </main>
+    );
+  }
+
   if (!token) {
     return (
       <main className="shell">
         <h1 className="display text-4xl">Нет ключа ведущего</h1>
-        <p className="mt-3 text-[var(--mute)]">Создайте охоту с этой же вкладки браузера.</p>
+        <p className="mt-3 text-[var(--mute)]">
+          Создайте охоту заново с главной — ключ передаётся в hash ссылки. Или вставьте host-токен, если он
+          сохранился.
+        </p>
+        <div className="panel mt-6 space-y-3">
+          <label className="label" htmlFor="hostToken">
+            Host-токен
+          </label>
+          <input
+            id="hostToken"
+            className="field"
+            value={paste}
+            onChange={(e) => setPaste(e.target.value)}
+            autoComplete="off"
+            placeholder="вставьте токен"
+          />
+          <button type="button" className="btn-lime w-full" onClick={applyPaste} disabled={!paste.trim()}>
+            Войти как ведущий
+          </button>
+          <Link href="/" className="btn-ghost inline-flex w-full">
+            На главную
+          </Link>
+        </div>
         <BrandFooter />
       </main>
     );
@@ -80,6 +156,9 @@ export default function HostPage() {
         <p className="mt-2" style={{ color: "var(--coral)" }}>
           {error || "Нет доступа"}
         </p>
+        <Link href="/" className="btn-ghost mt-6 inline-flex">
+          На главную
+        </Link>
         <BrandFooter />
       </main>
     );
