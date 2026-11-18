@@ -24,7 +24,8 @@ export async function sql<T = Record<string, unknown>>(
     g.__photoHuntPglite = undefined;
     throw error;
   });
-  return (await g.__photoHuntPglite.query<T>(text, params)).rows;
+  const db = await g.__photoHuntPglite;
+  return (await db.query<T>(text, params)).rows;
 }
 
 async function startLocal(): Promise<PGlite> {
