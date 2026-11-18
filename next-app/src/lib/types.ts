@@ -92,6 +92,7 @@ export type ScreenState = {
   companyLogo?: string;
   status: MissionStatus;
   guestCount: number;
+  guestAccessKey: string;
   approved: Array<{
     id: string;
     photo: string;

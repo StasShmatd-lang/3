@@ -15,8 +15,8 @@ export function newToken(bytes = 24) {
   return randomBytes(bytes).toString("base64url");
 }
 
-/** 12-char key (~60 bits) — short codes were flagged as guessable. */
-export function newAccessKey(length = 12) {
+/** 4-char hall key (easy to shout). Brute-force mitigated by durable join rate limits. */
+export function newAccessKey(length = 4) {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const buf = randomBytes(length);
   let out = "";

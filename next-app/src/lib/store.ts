@@ -99,7 +99,7 @@ export async function createEvent(input: {
   }
 
   const hostToken = newToken(24);
-  const guestAccessKey = newAccessKey(12);
+  const guestAccessKey = newAccessKey(4);
   const now = Date.now();
   const event: HuntEvent = {
     id: nanoid(12),
@@ -195,6 +195,7 @@ export function toScreenState(event: HuntEvent): ScreenState {
     companyLogo: event.companyLogo,
     status: event.status,
     guestCount: event.guests.length,
+    guestAccessKey: event.guestAccessKey,
     joinPath: `/join/${event.id}`,
     approved: event.submissions
       .filter((s) => s.status === "approved")

@@ -7,7 +7,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    if (!(await durableRateLimit(requestLimitKey(req, "join"), 8, 60_000))) {
+    // Tighter limits: guest keys are 4 chars for hall UX.
+    if (!(await durableRateLimit(requestLimitKey(req, "join"), 5, 60_000))) {
       return err("Слишком часто", 429);
     }
     const body = (await readBodyLimited(req, 8_000)) as {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     };
     const eventId = String(body.eventId ?? "");
     if (eventId) {
-      if (!(await durableRateLimit(`join:event:${eventId}`, 40, 60_000))) {
+      if (!(await durableRateLimit(`join:event:${eventId}`, 20, 60_000))) {
         return err("Слишком много попыток для этого события", 429);
       }
     }

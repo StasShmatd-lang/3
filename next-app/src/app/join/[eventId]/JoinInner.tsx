@@ -99,11 +99,11 @@ export function JoinInner() {
             </label>
             <input
               id="key"
-              className="field uppercase tracking-[0.18em]"
+              className="field uppercase tracking-[0.35em]"
               value={accessKey}
-              maxLength={16}
+              maxLength={4}
               onChange={(e) => setAccessKey(e.target.value.toUpperCase())}
-              placeholder="XXXXXXXXXXXX"
+              placeholder="ABCD"
               autoComplete="off"
             />
           </div>
@@ -123,7 +123,7 @@ export function JoinInner() {
           <button
             type="button"
             className="btn-lime w-full"
-            disabled={busy || accessKey.length < 10 || name.trim().length < 2}
+            disabled={busy || accessKey.length < 4 || name.trim().length < 2}
             onClick={() => void join()}
           >
             {busy ? "Входим…" : "Начать охоту"}

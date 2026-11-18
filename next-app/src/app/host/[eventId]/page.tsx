@@ -1,10 +1,10 @@
 "use client";
 
-import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BrandFooter } from "@/components/BrandFooter";
+import { QrPopup } from "@/components/QrPopup";
 import { StatusPill } from "@/components/StatusPill";
 import { usePollState } from "@/hooks/usePollState";
 import { api } from "@/lib/apiClient";
@@ -46,6 +46,7 @@ export default function HostPage() {
   const [booting, setBooting] = useState(true);
   const [base, setBase] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
   const { state, error, loading, setState } = usePollState(eventId, token || undefined);
   const host = state?.role === "host" ? (state as HostState) : null;
 
@@ -184,23 +185,31 @@ export default function HostPage() {
         </div>
       </div>
 
+      <QrPopup
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        joinUrl={joinUrl}
+        accessKey={host.guestAccessKey}
+        title="QR для гостей"
+      />
+
       <div className="mt-8 grid gap-5 lg:grid-cols-3">
         <section className="panel lg:col-span-1">
           <p className="label">Ключ для гостей</p>
-          <p className="display text-4xl tracking-[0.2em]" style={{ color: "var(--lime)" }}>
+          <p className="display text-5xl tracking-[0.35em]" style={{ color: "var(--lime)" }}>
             {host.guestAccessKey}
           </p>
-          <p className="mt-2 text-sm text-[var(--mute)]">
-            В QR только ссылка на вход. Ключ гости вводят вручную — не в query.
-          </p>
-          {joinUrl ? (
-            <div className="mt-5 inline-block rounded-2xl bg-white p-3">
-              <QRCodeSVG value={joinUrl} size={168} level="M" />
-            </div>
-          ) : null}
-          <p className="mt-3 break-all text-xs text-[var(--mute)]">{joinUrl}</p>
+          <p className="mt-2 text-sm text-[var(--mute)]">4 символа · ввод у гостя, не в URL</p>
+          <button
+            type="button"
+            className="btn-lime mt-5 w-full"
+            disabled={!joinUrl}
+            onClick={() => setQrOpen(true)}
+          >
+            Показать QR
+          </button>
           {screenUrl ? (
-            <a className="btn-lime mt-5 inline-flex w-full" href={screenUrl} target="_blank" rel="noreferrer">
+            <a className="btn-ghost mt-3 inline-flex w-full" href={screenUrl} target="_blank" rel="noreferrer">
               Экран зала
             </a>
           ) : null}

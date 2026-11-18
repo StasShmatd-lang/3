@@ -1,9 +1,9 @@
 "use client";
 
-import { QRCodeSVG } from "qrcode.react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BrandFooter } from "@/components/BrandFooter";
+import { QrPopup } from "@/components/QrPopup";
 import { usePollState } from "@/hooks/usePollState";
 import { api } from "@/lib/apiClient";
 import type { ScreenState } from "@/lib/types";
@@ -20,6 +20,7 @@ export function ScreenInner() {
   const eventId = params.eventId;
   const [token, setToken] = useState("");
   const [base, setBase] = useState("");
+  const [qrOpen, setQrOpen] = useState(false);
   const { state, error, loading } = usePollState(eventId, token || undefined);
   const screen = state?.role === "screen" ? (state as ScreenState) : null;
 
@@ -66,6 +67,14 @@ export function ScreenInner() {
 
   return (
     <main className="shell-hall">
+      <QrPopup
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        joinUrl={joinUrl}
+        accessKey={screen.guestAccessKey}
+        title="Сканируй и войди"
+      />
+
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div>
           {screen.companyLogo ? (
@@ -78,14 +87,14 @@ export function ScreenInner() {
             Одобрено: {screen.approved.length} · гостей: {screen.guestCount}
           </p>
         </div>
-        {joinUrl ? (
-          <div className="rounded-3xl border border-[var(--line)] bg-black/30 p-4 text-center">
-            <div className="inline-block rounded-2xl bg-white p-3">
-              <QRCodeSVG value={joinUrl} size={140} level="M" />
-            </div>
-            <p className="mt-3 text-xs text-[var(--mute)]">Сканируй → введи ключ у ведущего</p>
-          </div>
-        ) : null}
+        <button
+          type="button"
+          className="btn-lime"
+          disabled={!joinUrl}
+          onClick={() => setQrOpen(true)}
+        >
+          Показать QR
+        </button>
       </header>
 
       {screen.approved.length === 0 ? (
