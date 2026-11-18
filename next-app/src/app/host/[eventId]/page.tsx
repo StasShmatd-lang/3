@@ -8,35 +8,8 @@ import { QrPopup } from "@/components/QrPopup";
 import { StatusPill } from "@/components/StatusPill";
 import { usePollState } from "@/hooks/usePollState";
 import { api } from "@/lib/apiClient";
+import { loadToken, persistToken, readHashParam } from "@/lib/sessionKeys";
 import type { HostState } from "@/lib/types";
-
-function readHostTokenFromHash() {
-  if (typeof window === "undefined") return "";
-  const raw = window.location.hash.replace(/^#/, "");
-  const params = new URLSearchParams(raw);
-  return (params.get("h") || "").trim();
-}
-
-function loadStoredHostToken(eventId: string) {
-  try {
-    return (
-      localStorage.getItem(`ph-host:${eventId}`) ||
-      sessionStorage.getItem(`ph-host:${eventId}`) ||
-      ""
-    );
-  } catch {
-    return "";
-  }
-}
-
-function persistHostToken(eventId: string, token: string) {
-  try {
-    localStorage.setItem(`ph-host:${eventId}`, token);
-    sessionStorage.setItem(`ph-host:${eventId}`, token);
-  } catch {
-    // ignore quota / privacy mode
-  }
-}
 
 export default function HostPage() {
   const params = useParams<{ eventId: string }>();
@@ -44,33 +17,38 @@ export default function HostPage() {
   const [token, setToken] = useState<string>("");
   const [paste, setPaste] = useState("");
   const [booting, setBooting] = useState(true);
-  const [base, setBase] = useState("");
+  const [origin, setOrigin] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const { state, error, loading, setState } = usePollState(eventId, token || undefined);
   const host = state?.role === "host" ? (state as HostState) : null;
 
   useEffect(() => {
-    const fromHash = readHostTokenFromHash();
-    const fromStore = loadStoredHostToken(eventId);
-    const next = fromHash || fromStore;
+    const fromHash = readHashParam("h");
+    const next = fromHash || loadToken("host", eventId);
     if (fromHash) {
-      persistHostToken(eventId, fromHash);
-      // Drop token from the address bar without reload (hash must not stay in history forever).
+      persistToken("host", eventId, fromHash);
       window.history.replaceState(null, "", `/host/${eventId}`);
     }
     setToken(next);
+    setOrigin(window.location.origin);
     setBooting(false);
-    void api<{ base: string }>("/api/link-base")
-      .then((r) => setBase(r.base))
-      .catch(() => setBase(window.location.origin));
+    // Warm the screen route so «Экран зала» opens faster.
+    void fetch(`/screen/${eventId}`).catch(() => undefined);
   }, [eventId]);
 
-  const joinUrl = useMemo(() => (base ? `${base}/join/${eventId}` : ""), [base, eventId]);
-  const screenUrl = useMemo(() => {
-    if (!base || !host) return "";
-    return `${base}/screen/${eventId}#s=${encodeURIComponent(host.screenToken)}`;
-  }, [base, eventId, host]);
+  useEffect(() => {
+    if (host?.screenToken) persistToken("screen", eventId, host.screenToken);
+  }, [eventId, host?.screenToken]);
+
+  const joinUrl = useMemo(() => (origin ? `${origin}/join/${eventId}` : ""), [origin, eventId]);
+
+  function openHallScreen() {
+    if (!host?.screenToken) return;
+    persistToken("screen", eventId, host.screenToken);
+    const path = `/screen/${eventId}#s=${encodeURIComponent(host.screenToken)}`;
+    window.open(path, "_blank", "noopener,noreferrer");
+  }
 
   async function moderate(submissionId: string, status: "approved" | "rejected") {
     if (!token) return;
@@ -98,7 +76,7 @@ export default function HostPage() {
   function applyPaste() {
     const t = paste.trim();
     if (!t) return;
-    persistHostToken(eventId, t);
+    persistToken("host", eventId, t);
     setToken(t);
   }
 
@@ -208,11 +186,14 @@ export default function HostPage() {
           >
             Показать QR
           </button>
-          {screenUrl ? (
-            <a className="btn-ghost mt-3 inline-flex w-full" href={screenUrl} target="_blank" rel="noreferrer">
-              Экран зала
-            </a>
-          ) : null}
+          <button
+            type="button"
+            className="btn-ghost mt-3 w-full"
+            disabled={!host.screenToken}
+            onClick={openHallScreen}
+          >
+            Экран зала
+          </button>
           <div className="mt-5">
             <p className="label">Квота загрузок</p>
             <div className="h-2 overflow-hidden rounded-full bg-black/40">

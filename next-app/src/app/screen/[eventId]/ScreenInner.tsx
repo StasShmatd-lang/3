@@ -1,49 +1,87 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { BrandFooter } from "@/components/BrandFooter";
 import { QrPopup } from "@/components/QrPopup";
 import { usePollState } from "@/hooks/usePollState";
-import { api } from "@/lib/apiClient";
+import { loadToken, persistToken, readHashParam } from "@/lib/sessionKeys";
 import type { ScreenState } from "@/lib/types";
 
-function readScreenToken() {
-  if (typeof window === "undefined") return "";
-  const raw = window.location.hash.replace(/^#/, "");
-  const params = new URLSearchParams(raw);
-  return (params.get("s") || "").trim();
+function resolveScreenToken(eventId: string) {
+  const fromHash = readHashParam("s");
+  if (fromHash) {
+    persistToken("screen", eventId, fromHash);
+    return fromHash;
+  }
+  return loadToken("screen", eventId);
 }
 
 export function ScreenInner() {
   const params = useParams<{ eventId: string }>();
   const eventId = params.eventId;
   const [token, setToken] = useState("");
-  const [base, setBase] = useState("");
+  const [ready, setReady] = useState(false);
+  const [paste, setPaste] = useState("");
   const [qrOpen, setQrOpen] = useState(false);
+  const [origin, setOrigin] = useState("");
   const { state, error, loading } = usePollState(eventId, token || undefined);
   const screen = state?.role === "screen" ? (state as ScreenState) : null;
 
-  useEffect(() => {
-    setToken(readScreenToken());
-    const onHash = () => setToken(readScreenToken());
-    window.addEventListener("hashchange", onHash);
-    void api<{ base: string }>("/api/link-base")
-      .then((r) => setBase(r.base))
-      .catch(() => setBase(window.location.origin));
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+  useLayoutEffect(() => {
+    const next = resolveScreenToken(eventId);
+    if (readHashParam("s")) {
+      window.history.replaceState(null, "", `/screen/${eventId}`);
+    }
+    setToken(next);
+    setOrigin(window.location.origin);
+    setReady(true);
+  }, [eventId]);
 
-  const joinUrl = useMemo(() => (base ? `${base}/join/${eventId}` : ""), [base, eventId]);
+  const joinUrl = useMemo(
+    () => (origin ? `${origin}/join/${eventId}` : ""),
+    [origin, eventId],
+  );
+
+  function applyPaste() {
+    const t = paste.trim();
+    if (!t) return;
+    persistToken("screen", eventId, t);
+    setToken(t);
+  }
+
+  if (!ready) {
+    return (
+      <main className="shell-hall flex items-center justify-center">
+        <p className="text-lg text-[var(--mute)]">Открываем экран…</p>
+      </main>
+    );
+  }
 
   if (!token) {
     return (
-      <main className="shell-hall flex items-center justify-center">
-        <div className="max-w-lg text-center">
+      <main className="shell-hall flex items-center justify-center px-6">
+        <div className="w-full max-w-md text-center">
           <h1 className="display text-5xl">Нужен токен экрана</h1>
           <p className="mt-4 text-[var(--mute)]">
-            Откройте ссылку «Экран зала» из панели ведущего — токен в hash, не в query.
+            На панели ведущего нажмите «Экран зала» — откроется эта страница с доступом. Либо вставьте
+            screen-токен ниже.
           </p>
+          <div className="panel mt-8 space-y-3 text-left">
+            <label className="label" htmlFor="screenToken">
+              Screen-токен
+            </label>
+            <input
+              id="screenToken"
+              className="field"
+              value={paste}
+              onChange={(e) => setPaste(e.target.value)}
+              autoComplete="off"
+            />
+            <button type="button" className="btn-lime w-full" disabled={!paste.trim()} onClick={applyPaste}>
+              Открыть экран
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -87,12 +125,7 @@ export function ScreenInner() {
             Одобрено: {screen.approved.length} · гостей: {screen.guestCount}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn-lime"
-          disabled={!joinUrl}
-          onClick={() => setQrOpen(true)}
-        >
+        <button type="button" className="btn-lime" disabled={!joinUrl} onClick={() => setQrOpen(true)}>
           Показать QR
         </button>
       </header>

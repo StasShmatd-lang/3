@@ -50,6 +50,7 @@ export default function HomePage() {
       const res = await api<{
         eventId: string;
         hostToken: string;
+        screenToken?: string;
       }>("/api/events", {
         body: {
           title,
@@ -69,6 +70,10 @@ export default function HomePage() {
       try {
         localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
         sessionStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
+        if (res.screenToken) {
+          localStorage.setItem(`ph-screen:${res.eventId}`, res.screenToken);
+          sessionStorage.setItem(`ph-screen:${res.eventId}`, res.screenToken);
+        }
       } catch {
         // storage may be blocked in some previews — hash handoff below still works
       }
