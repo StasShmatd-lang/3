@@ -4,7 +4,12 @@ import pg from "pg";
 
 const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
 let pool: pg.Pool | undefined;
-let local: Promise<PGlite> | undefined;
+
+type GlobalDb = {
+  __photoHuntPglite?: Promise<PGlite>;
+};
+
+const g = globalThis as typeof globalThis & GlobalDb;
 
 export async function sql<T = Record<string, unknown>>(
   text: string,
@@ -14,11 +19,12 @@ export async function sql<T = Record<string, unknown>>(
     pool ??= new pg.Pool({ connectionString: databaseUrl, max: 5 });
     return (await pool.query(text, params)).rows as T[];
   }
-  local ??= startLocal().catch((error: unknown) => {
-    local = undefined;
+  // Survive Next.js route recompiles — module-scoped `let` resets per chunk.
+  g.__photoHuntPglite ??= startLocal().catch((error: unknown) => {
+    g.__photoHuntPglite = undefined;
     throw error;
   });
-  return (await (await local).query<T>(text, params)).rows;
+  return (await g.__photoHuntPglite.query<T>(text, params)).rows;
 }
 
 async function startLocal(): Promise<PGlite> {

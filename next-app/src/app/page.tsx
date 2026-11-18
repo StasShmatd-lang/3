@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { BrandFooter } from "@/components/BrandFooter";
 import { HeroVisual } from "@/components/HeroVisual";
@@ -11,7 +10,6 @@ import { defaultMissionDrafts } from "@/lib/storeDefaults";
 type Draft = { id: string; text: string; refPhoto: string };
 
 export default function HomePage() {
-  const router = useRouter();
   const [title, setTitle] = useState("Корп · Фото-охота");
   const [missions, setMissions] = useState<Draft[]>(() => defaultMissionDrafts());
   const [logo, setLogo] = useState<string>("");
@@ -66,7 +64,9 @@ export default function HomePage() {
       });
       if (createSecret) sessionStorage.setItem("ph-create-secret", createSecret);
       localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
-      router.push(`/host/${res.eventId}`);
+      // Full navigation avoids Turbopack "Failed to load chunk" on soft router.push
+      // after a long-lived / HMR-rebuilt client session.
+      window.location.assign(`/host/${res.eventId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось создать");
       setBusy(false);
