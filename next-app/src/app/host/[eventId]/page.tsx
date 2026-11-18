@@ -18,7 +18,6 @@ export default function HostPage() {
   const [paste, setPaste] = useState("");
   const [booting, setBooting] = useState(true);
   const [origin, setOrigin] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const { state, error, loading, setState } = usePollState(eventId, token || undefined);
   const host = state?.role === "host" ? (state as HostState) : null;
@@ -48,20 +47,6 @@ export default function HostPage() {
     persistToken("screen", eventId, host.screenToken);
     const path = `/screen/${eventId}#s=${encodeURIComponent(host.screenToken)}`;
     window.open(path, "_blank", "noopener,noreferrer");
-  }
-
-  async function moderate(submissionId: string, status: "approved" | "rejected") {
-    if (!token) return;
-    try {
-      const res = await api<{ state: HostState }>("/api/host", {
-        token,
-        body: { action: "moderate", eventId, submissionId, status },
-      });
-      setState(res.state);
-      setMsg(status === "approved" ? "В галерею зала" : "Отклонено");
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Ошибка");
-    }
   }
 
   async function setStatus(eventStatus: "live" | "closed") {
@@ -143,7 +128,9 @@ export default function HostPage() {
     );
   }
 
-  const pending = host.submissions.filter((s) => s.status === "pending");
+  const live = [...host.submissions]
+    .filter((s) => s.status === "approved")
+    .sort((a, b) => b.createdAt - a.createdAt);
   const quotaPct = Math.min(100, Math.round((host.uploadBytesUsed / host.uploadQuotaBytes) * 100));
 
   return (
@@ -207,40 +194,26 @@ export default function HostPage() {
 
         <section className="panel lg:col-span-2">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="display text-2xl">Модерация</h2>
-            <span className="text-sm text-[var(--mute)]">ожидают: {pending.length}</span>
+            <h2 className="display text-2xl">Живая лента</h2>
+            <span className="text-sm text-[var(--mute)]">на экране: {live.length}</span>
           </div>
-          {msg ? <p className="mb-3 text-sm text-[var(--ice)]">{msg}</p> : null}
-          {pending.length === 0 ? (
-            <p className="text-[var(--mute)]">Пока тихо — ждем кадры с телефонов.</p>
+          <p className="mb-4 text-sm text-[var(--mute)]">
+            Без модерации: гость сфотографировал — кадр сразу в зале, по рубрике миссии.
+          </p>
+          {live.length === 0 ? (
+            <p className="text-[var(--mute)]">Пока тихо — ждём кадры с телефонов.</p>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              {pending.map((s) => (
+              {live.slice(0, 8).map((s) => (
                 <article key={s.id} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-black/20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={s.photo} alt="" className="aspect-[4/3] w-full object-cover" />
-                  <div className="space-y-2 p-3">
+                  <div className="space-y-1 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold">{s.guestName}</p>
                       <StatusPill status={s.status} />
                     </div>
                     <p className="text-sm text-[var(--mute)]">{s.missionText}</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn-lime flex-1 py-2 text-sm"
-                        onClick={() => void moderate(s.id, "approved")}
-                      >
-                        В зал
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost flex-1 py-2 text-sm"
-                        onClick={() => void moderate(s.id, "rejected")}
-                      >
-                        Нет
-                      </button>
-                    </div>
                   </div>
                 </article>
               ))}
@@ -250,30 +223,22 @@ export default function HostPage() {
       </div>
 
       <section className="mt-6 panel">
-        <h2 className="display text-2xl">Миссии</h2>
+        <h2 className="display text-2xl">Рубрики</h2>
         <ol className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {host.missions.map((m, i) => (
-            <li key={m.id} className="rounded-2xl border border-[var(--line)] bg-black/15 p-4">
-              <p className="text-xs uppercase tracking-widest text-[var(--mute)]">#{i + 1}</p>
-              <p className="mt-1 font-semibold">{m.text}</p>
-            </li>
-          ))}
+          {host.missions.map((m, i) => {
+            const count = host.submissions.filter(
+              (s) => s.missionId === m.id && s.status === "approved",
+            ).length;
+            return (
+              <li key={m.id} className="rounded-2xl border border-[var(--line)] bg-black/15 p-4">
+                <p className="text-xs uppercase tracking-widest" style={{ color: "var(--lime)" }}>
+                  рубрика {i + 1} · {count} фото
+                </p>
+                <p className="mt-1 font-semibold">{m.text}</p>
+              </li>
+            );
+          })}
         </ol>
-      </section>
-
-      <section className="mt-6 panel">
-        <h2 className="display text-2xl">Все кадры</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {host.submissions.map((s) => (
-            <div key={s.id} className="relative overflow-hidden rounded-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.photo} alt="" className="aspect-square w-full object-cover" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                <StatusPill status={s.status} />
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
       <BrandFooter />
     </main>

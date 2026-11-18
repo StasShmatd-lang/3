@@ -85,6 +85,22 @@ export type GuestState = {
   }>;
 };
 
+export type ScreenShot = {
+  id: string;
+  photo: string;
+  guestName: string;
+  missionId: string;
+  missionText: string;
+  createdAt: number;
+};
+
+export type ScreenRubric = {
+  id: string;
+  index: number;
+  text: string;
+  photos: ScreenShot[];
+};
+
 export type ScreenState = {
   role: "screen";
   eventId: string;
@@ -93,13 +109,8 @@ export type ScreenState = {
   status: MissionStatus;
   guestCount: number;
   guestAccessKey: string;
-  approved: Array<{
-    id: string;
-    photo: string;
-    guestName: string;
-    missionText: string;
-    createdAt: number;
-  }>;
+  photoCount: number;
+  rubrics: ScreenRubric[];
   joinPath: string;
 };
 

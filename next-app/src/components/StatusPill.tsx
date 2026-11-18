@@ -1,9 +1,9 @@
 import type { SubmissionStatus } from "@/lib/types";
 
 const map: Record<SubmissionStatus, { label: string; color: string }> = {
-  pending: { label: "на проверке", color: "var(--ice)" },
-  approved: { label: "в зале", color: "var(--lime)" },
-  rejected: { label: "отклонено", color: "var(--coral)" },
+  pending: { label: "загрузка", color: "var(--ice)" },
+  approved: { label: "на экране", color: "var(--lime)" },
+  rejected: { label: "скрыто", color: "var(--coral)" },
 };
 
 export function StatusPill({ status }: { status: SubmissionStatus }) {

@@ -103,7 +103,7 @@ export default function HomePage() {
             <span style={{ color: "var(--lime)" }}>охота</span>
           </h1>
           <p className="animate-rise mt-4 max-w-sm text-base leading-relaxed text-[var(--mute)]">
-            Пять миссий по залу. Гости грузят кадры — вы решаете, что попадает на большой экран.
+            Пять рубрик по залу. Гость снял фото — оно сразу на большом экране, с названием рубрики.
           </p>
           <div className="animate-rise mt-8">
             <button type="button" className="btn-lime w-full sm:w-auto" onClick={() => setStep("setup")}>

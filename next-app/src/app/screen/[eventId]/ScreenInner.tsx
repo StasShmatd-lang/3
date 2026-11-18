@@ -43,6 +43,11 @@ export function ScreenInner() {
     [origin, eventId],
   );
 
+  const rubricsWithPhotos = useMemo(
+    () => screen?.rubrics.filter((r) => r.photos.length > 0) ?? [],
+    [screen],
+  );
+
   function applyPaste() {
     const t = paste.trim();
     if (!t) return;
@@ -122,7 +127,7 @@ export function ScreenInner() {
           <p className="text-sm uppercase tracking-[0.25em] text-[var(--mute)]">Галерея зала</p>
           <h1 className="display mt-2 text-5xl md:text-7xl">{screen.title}</h1>
           <p className="mt-3 text-lg text-[var(--mute)]">
-            Одобрено: {screen.approved.length} · гостей: {screen.guestCount}
+            Кадров: {screen.photoCount} · гостей: {screen.guestCount}
           </p>
         </div>
         <button type="button" className="btn-lime" disabled={!joinUrl} onClick={() => setQrOpen(true)}>
@@ -130,27 +135,43 @@ export function ScreenInner() {
         </button>
       </header>
 
-      {screen.approved.length === 0 ? (
+      {screen.photoCount === 0 ? (
         <div className="mt-16 flex min-h-[40vh] flex-col items-center justify-center text-center">
           <div className="h-20 w-20 animate-shutter rounded-full border-2 border-[var(--lime)]" />
           <p className="display mt-8 text-4xl md:text-6xl">Ждём первые кадры</p>
-          <p className="mt-3 max-w-md text-[var(--mute)]">Как только ведущий одобрит фото — оно вспыхнет здесь.</p>
+          <p className="mt-3 max-w-md text-[var(--mute)]">
+            Гость снял фото по рубрике — оно сразу появится здесь.
+          </p>
         </div>
       ) : (
-        <div className="mt-10 columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
-          {screen.approved.map((shot, i) => (
-            <figure
-              key={shot.id}
-              className="mb-4 break-inside-avoid animate-cascade overflow-hidden rounded-2xl border border-[var(--line)] bg-black/25"
-              style={{ animationDelay: `${(i % 8) * 0.05}s` }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={shot.photo} alt="" className="w-full object-cover" />
-              <figcaption className="space-y-1 p-3">
-                <p className="font-semibold">{shot.guestName}</p>
-                <p className="text-sm text-[var(--mute)]">{shot.missionText}</p>
-              </figcaption>
-            </figure>
+        <div className="mt-10 space-y-14">
+          {rubricsWithPhotos.map((rubric) => (
+            <section key={rubric.id} className="animate-cascade">
+              <div className="mb-5 flex flex-wrap items-end gap-3 border-b border-[var(--line)] pb-3">
+                <p
+                  className="display text-2xl md:text-3xl"
+                  style={{ color: "var(--lime)" }}
+                >
+                  {rubric.index}.
+                </p>
+                <h2 className="display text-3xl text-[var(--mist)] md:text-4xl">{rubric.text}</h2>
+                <span className="ml-auto text-sm text-[var(--mute)]">{rubric.photos.length} фото</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {rubric.photos.map((shot) => (
+                  <figure
+                    key={shot.id}
+                    className="overflow-hidden rounded-2xl border border-[var(--line)] bg-black/25"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={shot.photo} alt="" className="aspect-square w-full object-cover" />
+                    <figcaption className="p-2.5">
+                      <p className="truncate font-semibold">{shot.guestName}</p>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

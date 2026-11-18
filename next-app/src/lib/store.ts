@@ -188,6 +188,24 @@ export function toGuestState(event: HuntEvent, guestToken: string): GuestState |
 }
 
 export function toScreenState(event: HuntEvent): ScreenState {
+  const live = event.submissions
+    .filter((s) => s.status === "approved")
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const rubrics = event.missions.map((m, i) => ({
+    id: m.id,
+    index: i + 1,
+    text: m.text,
+    photos: live
+      .filter((s) => s.missionId === m.id)
+      .map((s) => ({
+        id: s.id,
+        photo: s.photo,
+        guestName: guestNameById(event, s.guestId),
+        missionId: m.id,
+        missionText: m.text,
+        createdAt: s.createdAt,
+      })),
+  }));
   return {
     role: "screen",
     eventId: event.id,
@@ -197,16 +215,8 @@ export function toScreenState(event: HuntEvent): ScreenState {
     guestCount: event.guests.length,
     guestAccessKey: event.guestAccessKey,
     joinPath: `/join/${event.id}`,
-    approved: event.submissions
-      .filter((s) => s.status === "approved")
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map((s) => ({
-        id: s.id,
-        photo: s.photo,
-        guestName: guestNameById(event, s.guestId),
-        missionText: missionTextById(event, s.missionId),
-        createdAt: s.createdAt,
-      })),
+    photoCount: live.length,
+    rubrics,
   };
 }
 
@@ -265,12 +275,13 @@ export async function submitPhoto(
   );
   if (existing) throw new Error("Уже есть фото по этой миссии");
 
+  // No host moderation — shot goes straight to the hall screen.
   const submission = {
     id: nanoid(12),
     guestId: guest.id,
     missionId,
     photo,
-    status: "pending" as const,
+    status: "approved" as const,
     createdAt: Date.now(),
   };
   event.submissions.push(submission);
