@@ -1,18 +1,16 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Onest, Unbounded } from "next/font/google";
 import "./globals.css";
 
-const display = Unbounded({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-display",
-  weight: ["500", "700", "800"],
-});
+// Fonts load in the guest's browser from Google Fonts.
+// (next/font/google downloaded them during the build and sometimes broke the deploy.)
+const FONTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap";
 
-const body = Onest({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
-});
+const fontVars = {
+  "--font-display": '"Unbounded"',
+  "--font-body": '"Onest"',
+} as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Фото-охота",
@@ -22,7 +20,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru">
-      <body className={`${display.variable} ${body.variable} font-body antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href={FONTS_CSS} />
+      </head>
+      <body className="font-body antialiased" style={fontVars}>
         <div className="noise" aria-hidden />
         <div className="stage">{children}</div>
       </body>
