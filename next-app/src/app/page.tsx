@@ -10,7 +10,7 @@ import { defaultMissionDrafts } from "@/lib/storeDefaults";
 type Draft = { id: string; text: string; refPhoto: string };
 
 export default function HomePage() {
-  const [title, setTitle] = useState("Корп · Фото-охота");
+  const [title, setTitle] = useState("");
   const [missions, setMissions] = useState<Draft[]>(() => defaultMissionDrafts());
   const [logo, setLogo] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -135,6 +135,7 @@ export default function HomePage() {
               className="field"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Например: Корпоратив «Альфа»"
               maxLength={80}
             />
           </div>

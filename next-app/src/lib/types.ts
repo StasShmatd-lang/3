@@ -21,6 +21,8 @@ export type Submission = {
   missionId: string;
   photo: string;
   status: SubmissionStatus;
+  /** Marked by the host on the hall screen — shown first, with a star. */
+  starred?: boolean;
   createdAt: number;
 };
 
@@ -91,6 +93,7 @@ export type ScreenShot = {
   guestName: string;
   missionId: string;
   missionText: string;
+  starred: boolean;
   createdAt: number;
 };
 

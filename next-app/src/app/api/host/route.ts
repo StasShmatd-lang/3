@@ -2,7 +2,7 @@ import { bearerToken, readBodyLimited } from "@/lib/auth";
 import { err, json } from "@/lib/json";
 import { BODY_HOST_MAX } from "@/lib/limits";
 import { rateLimit, requestLimitKey } from "@/lib/rateLimit";
-import { moderateSubmission, updateHostEvent } from "@/lib/store";
+import { curateSubmission, moderateSubmission, updateHostEvent, type CurateAction } from "@/lib/store";
 
 export const runtime = "nodejs";
 
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       missions?: unknown;
       eventStatus?: "draft" | "live" | "closed";
       companyLogo?: string | null;
+      curate?: CurateAction;
     };
     const eventId = String(body.eventId ?? "");
     if (body.action === "moderate") {
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
         token,
         String(body.submissionId ?? ""),
         body.status === "rejected" ? "rejected" : "approved",
+      );
+      return json({ state });
+    }
+    if (body.action === "curate") {
+      const state = await curateSubmission(
+        eventId,
+        token,
+        String(body.submissionId ?? ""),
+        body.curate as CurateAction,
       );
       return json({ state });
     }

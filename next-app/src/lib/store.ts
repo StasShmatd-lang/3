@@ -257,8 +257,9 @@ export function toGuestState(event: HuntEvent, guestToken: string): GuestState |
     guestId: guest.id,
     name: guest.name,
     missions: publicMissions(event),
+    // Photos removed from the hall screen are hidden, so the guest can shoot that mission again.
     mySubmissions: event.submissions
-      .filter((s) => s.guestId === guest.id)
+      .filter((s) => s.guestId === guest.id && s.status !== "rejected")
       .map((s) => ({
         id: s.id,
         missionId: s.missionId,
@@ -284,6 +285,7 @@ export function toScreenState(event: HuntEvent): ScreenState {
         guestName: guestNameById(event, s.guestId),
         missionId: m.id,
         missionText: m.text,
+        starred: Boolean(s.starred),
         createdAt: s.createdAt,
       })),
   }));
@@ -381,6 +383,39 @@ export async function moderateSubmission(
     if (!sub) throw new Error("Фото не найдено");
     sub.status = status;
     return toHostState(event);
+  });
+}
+
+export type CurateAction = "star" | "unstar" | "delete";
+
+/**
+ * Star / unstar / remove a photo straight from the hall screen.
+ * Allowed with the host token or the screen token (both stay with the host team, never with guests).
+ * A removed photo frees the slot, so the guest can shoot that mission again.
+ */
+export async function curateSubmission(
+  eventId: string,
+  token: string,
+  submissionId: string,
+  action: CurateAction,
+) {
+  if (action !== "star" && action !== "unstar" && action !== "delete") {
+    throw new Error("Действие: star, unstar или delete");
+  }
+  return mutateEvent(eventId, async (event, q) => {
+    const isHost = token === event.hostToken;
+    if (!isHost && token !== event.screenToken) throw new Error("Нет доступа");
+    const sub = event.submissions.find((s) => s.id === submissionId);
+    if (!sub) throw new Error("Фото не найдено");
+    if (action === "delete") {
+      sub.status = "rejected";
+      sub.starred = false;
+      await dropImage(q, sub.photo);
+      sub.photo = "";
+    } else {
+      sub.starred = action === "star";
+    }
+    return isHost ? toHostState(event) : toScreenState(event);
   });
 }
 

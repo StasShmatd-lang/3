@@ -46,6 +46,27 @@ body {
   @apply relative min-h-screen w-full overflow-hidden px-6 py-7 md:px-10;
 }
 
+/* Hall screen: exactly one viewport, never scrolls — safe to broadcast. */
+.hall {
+  @apply relative w-full overflow-hidden px-6 pb-9 pt-5 md:px-10;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.tile-fresh {
+  animation: fresh-glow 1.6s ease-in-out 3;
+}
+
+@keyframes fresh-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
 .display {
   font-family: var(--font-display), "Arial Black", sans-serif;
   letter-spacing: -0.04em;
