@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { FullscreenButton } from "@/components/FullscreenButton";
 import { QrPopup } from "@/components/QrPopup";
 import { usePollState } from "@/hooks/usePollState";
 import { api } from "@/lib/apiClient";
@@ -172,12 +173,7 @@ export function ScreenInner() {
     return () => window.clearTimeout(t);
   }, [armed]);
 
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen().catch(() => undefined);
-  }, []);
-
-  // Keyboard: 0 — авто, 1–5 — рубрики, S — избранное, ← → — страницы, F — весь экран, Q — QR.
+  // Keyboard: 0 — авто, 1–5 — рубрики, S — избранное, ← → — страницы, Q — QR (F — в FullscreenButton).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!screen || e.target instanceof HTMLInputElement) return;
@@ -187,14 +183,13 @@ export function ScreenInner() {
         const r = screen.rubrics[Number(k) - 1];
         if (r) setView(r.id);
       } else if (k === "s") setView("stars");
-      else if (k === "f") toggleFullscreen();
       else if (k === "q") setQrOpen((o) => !o);
       else if (e.key === "ArrowRight") setPage((p) => (p + 1) % pages);
       else if (e.key === "ArrowLeft") setPage((p) => (p - 1 + pages) % pages);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [screen, pages, toggleFullscreen]);
+  }, [screen, pages]);
 
   async function curate(shot: ScreenShot, action: "star" | "unstar" | "delete") {
     if (!screen) return;
@@ -439,15 +434,7 @@ export function ScreenInner() {
       >
         0 авто · 1–5 рубрики · S избранное · ← → страницы · F весь экран · Q QR
       </div>
-      <button
-        type="button"
-        onClick={toggleFullscreen}
-        className={`absolute bottom-2 right-3 rounded-lg px-2 py-1 text-xs text-[var(--mute)] transition-opacity hover:text-[var(--mist)] ${
-          idle ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        ⛶ весь экран
-      </button>
+      <FullscreenButton />
     </main>
   );
 }
