@@ -114,7 +114,6 @@ export function ScreenInner() {
         open={qrOpen}
         onClose={() => setQrOpen(false)}
         joinUrl={joinUrl}
-        accessKey={screen.guestAccessKey}
         title="Сканируй и войди"
       />
 

@@ -9,16 +9,15 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    if (!(await durableRateLimit(requestLimitKey(req, "create"), 3, 60_000))) {
+    if (!(await durableRateLimit(requestLimitKey(req, "create"), 30, 60_000))) {
       return err("Слишком часто. Подождите минуту", 429);
     }
     const body = (await readBodyLimited(req, BODY_CREATE_MAX)) as {
       title?: string;
       missions?: unknown;
       companyLogo?: string;
-      createSecret?: string;
     };
-    assertCanCreateEvent(body.createSecret);
+    assertCanCreateEvent();
     const { event, hostToken } = await createEvent({
       title: String(body.title ?? ""),
       missions: body.missions,
@@ -33,7 +32,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Ошибка создания";
-    const status = message.includes("пароль") || message.includes("секрет") ? 401 : 400;
-    return err(message, status);
+    return err(message, 400);
   }
 }

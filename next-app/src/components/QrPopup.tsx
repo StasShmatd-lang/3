@@ -7,11 +7,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   joinUrl: string;
-  accessKey: string;
   title?: string;
 };
 
-export function QrPopup({ open, onClose, joinUrl, accessKey, title }: Props) {
+export function QrPopup({ open, onClose, joinUrl, title }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -46,13 +45,7 @@ export function QrPopup({ open, onClose, joinUrl, accessKey, title }: Props) {
         <div className="mt-5 inline-block rounded-2xl bg-white p-4">
           <QRCodeSVG value={joinUrl} size={220} level="M" />
         </div>
-        <p
-          className="display mt-5 text-5xl tracking-[0.35em]"
-          style={{ color: "var(--lime)" }}
-        >
-          {accessKey}
-        </p>
-        <p className="mt-2 text-sm text-[var(--mute)]">ключ события · 4 символа</p>
+        <p className="mt-4 text-sm text-[var(--mute)]">Наведи камеру — и сразу в игру</p>
         <button type="button" className="btn-ghost mt-6 w-full" onClick={onClose}>
           Закрыть
         </button>

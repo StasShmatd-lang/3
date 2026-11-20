@@ -154,17 +154,16 @@ export default function HostPage() {
         open={qrOpen}
         onClose={() => setQrOpen(false)}
         joinUrl={joinUrl}
-        accessKey={host.guestAccessKey}
         title="QR для гостей"
       />
 
       <div className="mt-8 grid gap-5 lg:grid-cols-3">
         <section className="panel lg:col-span-1">
-          <p className="label">Ключ для гостей</p>
-          <p className="display text-5xl tracking-[0.35em]" style={{ color: "var(--lime)" }}>
-            {host.guestAccessKey}
+          <p className="label">Вход для гостей</p>
+          <p className="display text-3xl" style={{ color: "var(--lime)" }}>
+            По QR
           </p>
-          <p className="mt-2 text-sm text-[var(--mute)]">4 символа · ввод у гостя, не в URL</p>
+          <p className="mt-2 text-sm text-[var(--mute)]">Без ключа — гость вводит только имя</p>
           <button
             type="button"
             className="btn-lime mt-5 w-full"

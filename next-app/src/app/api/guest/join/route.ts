@@ -7,22 +7,21 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    // Shared edge bucket (headers are not trusted) + per-event cap below.
-    if (!(await durableRateLimit(requestLimitKey(req, "join"), 60, 60_000))) {
+    // Whole hall scans the QR at once: generous shared bucket + per-event cap.
+    if (!(await durableRateLimit(requestLimitKey(req, "join"), 1500, 60_000))) {
       return err("Слишком часто", 429);
     }
     const body = (await readBodyLimited(req, 8_000)) as {
       eventId?: string;
-      accessKey?: string;
       name?: string;
     };
     const eventId = String(body.eventId ?? "");
     if (eventId) {
-      if (!(await durableRateLimit(`join:event:${eventId}`, 20, 60_000))) {
+      if (!(await durableRateLimit(`join:event:${eventId}`, 600, 60_000))) {
         return err("Слишком много попыток для этого события", 429);
       }
     }
-    const result = await joinGuest(eventId, String(body.accessKey ?? ""), String(body.name ?? ""));
+    const result = await joinGuest(eventId, String(body.name ?? ""));
     return json(result);
   } catch (e) {
     return err(e instanceof Error ? e.message : "Ошибка входа", 400);

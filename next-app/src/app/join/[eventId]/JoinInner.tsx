@@ -9,18 +9,10 @@ import { api } from "@/lib/apiClient";
 import { fileToDataUrl } from "@/lib/photo";
 import type { GuestState } from "@/lib/types";
 
-function readHashKey() {
-  if (typeof window === "undefined") return "";
-  const raw = window.location.hash.replace(/^#/, "");
-  const params = new URLSearchParams(raw);
-  return (params.get("k") || "").trim().toUpperCase();
-}
-
 export function JoinInner() {
   const params = useParams<{ eventId: string }>();
   const eventId = params.eventId;
   const [metaTitle, setMetaTitle] = useState("Фото-охота");
-  const [accessKey, setAccessKey] = useState("");
   const [name, setName] = useState("");
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,8 +24,6 @@ export function JoinInner() {
   useEffect(() => {
     const saved = localStorage.getItem(`ph-guest:${eventId}`) || "";
     if (saved) setToken(saved);
-    const hk = readHashKey();
-    if (hk) setAccessKey(hk);
   }, [eventId]);
 
   useEffect(() => {
@@ -51,7 +41,7 @@ export function JoinInner() {
     setError(null);
     try {
       const res = await api<{ guestToken: string; state: GuestState }>("/api/guest/join", {
-        body: { eventId, accessKey, name },
+        body: { eventId, name },
       });
       localStorage.setItem(`ph-guest:${eventId}`, res.guestToken);
       setToken(res.guestToken);
@@ -91,22 +81,8 @@ export function JoinInner() {
         <h1 className="display mt-2 text-5xl">
           {metaTitle}
         </h1>
-        <p className="mt-3 text-[var(--mute)]">Введите ключ с экрана ведущего и своё имя — дальше 5 миссий.</p>
+        <p className="mt-3 text-[var(--mute)]">Введите своё имя — дальше 5 миссий.</p>
         <div className="panel mt-8 space-y-4">
-          <div>
-            <label className="label" htmlFor="key">
-              Ключ события
-            </label>
-            <input
-              id="key"
-              className="field uppercase tracking-[0.35em]"
-              value={accessKey}
-              maxLength={4}
-              onChange={(e) => setAccessKey(e.target.value.toUpperCase())}
-              placeholder="ABCD"
-              autoComplete="off"
-            />
-          </div>
           <div>
             <label className="label" htmlFor="name">
               Ваше имя
@@ -117,13 +93,17 @@ export function JoinInner() {
               value={name}
               maxLength={40}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !busy && name.trim().length >= 2) void join();
+              }}
               placeholder="Аня"
+              autoFocus
             />
           </div>
           <button
             type="button"
             className="btn-lime w-full"
-            disabled={busy || accessKey.length < 4 || name.trim().length < 2}
+            disabled={busy || name.trim().length < 2}
             onClick={() => void join()}
           >
             {busy ? "Входим…" : "Начать охоту"}

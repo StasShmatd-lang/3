@@ -9,8 +9,9 @@ export async function GET(req: Request) {
   try {
     const token = bearerToken(req);
     if (!token) return err("Нужен Bearer-токен", 401);
-    // Limit by shared edge identity before any token is trusted.
-    if (!rateLimit(requestLimitKey(req, "state"), 120, 60_000)) {
+    // Per-device bucket (by token): one shared bucket for the whole hall
+    // blocked everyone after 4–5 phones.
+    if (!rateLimit(requestLimitKey(req, "state", token), 90, 60_000)) {
       return err("Слишком часто", 429);
     }
     const eventId = new URL(req.url).searchParams.get("eventId")?.trim();

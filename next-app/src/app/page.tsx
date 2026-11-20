@@ -13,7 +13,6 @@ export default function HomePage() {
   const [title, setTitle] = useState("Корп · Фото-охота");
   const [missions, setMissions] = useState<Draft[]>(() => defaultMissionDrafts());
   const [logo, setLogo] = useState<string>("");
-  const [createSecret, setCreateSecret] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<"hero" | "setup">("hero");
@@ -55,7 +54,6 @@ export default function HomePage() {
         body: {
           title,
           companyLogo: logo || undefined,
-          createSecret: createSecret || undefined,
           missions: missions.map((m) => ({
             id: m.id,
             text: m.text.trim(),
@@ -66,7 +64,6 @@ export default function HomePage() {
       if (!res.eventId || !res.hostToken) {
         throw new Error("Сервер не вернул ключ ведущего");
       }
-      if (createSecret) sessionStorage.setItem("ph-create-secret", createSecret);
       try {
         localStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
         sessionStorage.setItem(`ph-host:${res.eventId}`, res.hostToken);
@@ -157,26 +154,11 @@ export default function HomePage() {
               <img src={logo} alt="Лого" className="mt-3 h-16 w-auto rounded-lg object-contain" />
             ) : null}
           </div>
-          <div>
-            <label className="label" htmlFor="createSecret">
-              Пароль
-            </label>
-            <input
-              id="createSecret"
-              type="password"
-              className="field"
-              value={createSecret}
-              autoComplete="off"
-              onChange={(e) => setCreateSecret(e.target.value)}
-              placeholder="пароль для создания"
-              required
-            />
-          </div>
         </section>
 
         <section className="panel">
           <p className="text-sm text-[var(--mute)]">
-            После старта гости вводят ключ события (не в URL). Токены экрана — только в hash.
+            Гости заходят по QR и вводят только имя — без ключей и паролей.
           </p>
           <button
             type="button"
