@@ -341,7 +341,7 @@ export async function submitPhoto(
     if (!guest) throw new Error("Нужна авторизация гостя");
     const mission = event.missions.find((m) => m.id === missionId);
     if (!mission) throw new Error("Миссия не найдена");
-    if (event.submissions.length >= MAX_SUBMISSIONS_PER_EVENT) {
+    if (event.submissions.filter((s) => s.status !== "rejected").length >= MAX_SUBMISSIONS_PER_EVENT) {
       throw new Error("Лимит фото на событие");
     }
     if (event.uploadBytesUsed + photo.length > MAX_EVENT_UPLOAD_CHARS) {
@@ -360,6 +360,7 @@ export async function submitPhoto(
       missionId,
       photo: await putImage(q, event.id, photo),
       status: "approved" as const,
+      size: photo.length,
       createdAt: Date.now(),
     };
     event.submissions.push(submission);
@@ -408,6 +409,17 @@ export async function curateSubmission(
     const sub = event.submissions.find((s) => s.id === submissionId);
     if (!sub) throw new Error("Фото не найдено");
     if (action === "delete") {
+      if (sub.status !== "rejected") {
+        // Give the space back to the event quota.
+        let size = sub.size;
+        if (size == null && sub.photo.startsWith(IMG_PREFIX)) {
+          const rows = await q<{ n: number }>("select octet_length(data) as n from images where id = $1", [
+            sub.photo.slice(IMG_PREFIX.length),
+          ]);
+          size = Math.ceil((Number(rows[0]?.n ?? 0) * 4) / 3);
+        }
+        event.uploadBytesUsed = Math.max(0, event.uploadBytesUsed - (size ?? 0));
+      }
       sub.status = "rejected";
       sub.starred = false;
       await dropImage(q, sub.photo);

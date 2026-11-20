@@ -23,6 +23,8 @@ export type Submission = {
   status: SubmissionStatus;
   /** Marked by the host on the hall screen — shown first, with a star. */
   starred?: boolean;
+  /** Data-URL length counted against the event quota (returned on delete). */
+  size?: number;
   createdAt: number;
 };
 

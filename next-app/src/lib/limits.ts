@@ -4,10 +4,15 @@ export const MAX_PHOTO_CHARS = 350_000;
 /** Optional company / mission reference photos. */
 export const MAX_REF_PHOTO_CHARS = 280_000;
 
-/** Soft quota of stored data-URL characters per event (~40MB). */
-export const MAX_EVENT_UPLOAD_CHARS = 40_000_000;
+/**
+ * Quota of stored data-URL characters per event (~300M chars ≈ 225 MB of JPEG).
+ * A phone photo is ~130–250K chars, so this fits all 1250 photos below.
+ * Deleted photos give their space back.
+ */
+export const MAX_EVENT_UPLOAD_CHARS = 300_000_000;
 
-export const MAX_SUBMISSIONS_PER_EVENT = 400;
+/** 250 guests × 5 missions. Deleted photos don't count. */
+export const MAX_SUBMISSIONS_PER_EVENT = 1250;
 export const MAX_GUESTS_PER_EVENT = 250;
 export const MAX_MISSIONS = 5;
 export const MIN_MISSIONS = 5;
