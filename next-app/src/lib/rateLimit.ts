@@ -5,11 +5,21 @@ type Bucket = { n: number; reset: number };
 const g = globalThis as unknown as { __phRate?: Map<string, Bucket> };
 g.__phRate ??= new Map();
 
+function pruneExpired(now: number) {
+  for (const [k, v] of g.__phRate!) {
+    if (now > v.reset) g.__phRate!.delete(k);
+  }
+}
+
 /** In-memory fallback (single instance). Prefer durableRateLimit for join/create. */
 export function rateLimit(key: string, max: number, windowMs: number) {
   const now = Date.now();
+  if (g.__phRate!.size > 200) pruneExpired(now);
   let b = g.__phRate!.get(key);
-  if (!b || now > b.reset) b = { n: 0, reset: now + windowMs };
+  if (!b || now > b.reset) {
+    if (b) g.__phRate!.delete(key);
+    b = { n: 0, reset: now + windowMs };
+  }
   b.n += 1;
   g.__phRate!.set(key, b);
   return b.n <= max;
@@ -45,10 +55,12 @@ export async function durableRateLimit(key: string, max: number, windowMs: numbe
   return hits <= max;
 }
 
-export function clientIp(req: Request) {
-  const xf = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const real = req.headers.get("x-real-ip")?.trim();
-  return real || xf || "unknown";
+/**
+ * Do not trust client-controlled X-Forwarded-For / X-Real-Ip.
+ * Shared bucket is stricter than spoofable per-IP buckets on a Public app.
+ */
+export function clientIp(_req: Request) {
+  return "shared";
 }
 
 export function requestLimitKey(req: Request, scope: string, secret?: string) {

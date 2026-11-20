@@ -10,7 +10,8 @@ export async function POST(req: Request) {
   try {
     const token = bearerToken(req);
     if (!token) return err("Нужен токен гостя", 401);
-    if (!rateLimit(requestLimitKey(req, "submit", token), 20, 60_000)) {
+    // Limit by shared edge identity before any token is trusted.
+    if (!rateLimit(requestLimitKey(req, "submit"), 40, 60_000)) {
       return err("Слишком часто", 429);
     }
     const body = (await readBodyLimited(req, BODY_SUBMIT_MAX)) as {

@@ -7,8 +7,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    // Tighter limits: guest keys are 4 chars for hall UX.
-    if (!(await durableRateLimit(requestLimitKey(req, "join"), 5, 60_000))) {
+    // Shared edge bucket (headers are not trusted) + per-event cap below.
+    if (!(await durableRateLimit(requestLimitKey(req, "join"), 60, 60_000))) {
       return err("Слишком часто", 429);
     }
     const body = (await readBodyLimited(req, 8_000)) as {

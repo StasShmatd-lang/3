@@ -43,11 +43,47 @@ export function accessKeysMatch(provided: string, expectedPlain: string, expecte
   return timingSafeEqual(aa, bb);
 }
 
+/**
+ * Read JSON body with a hard byte cap while streaming.
+ * Does not trust Content-Length alone (chunked / lying length).
+ */
 export async function readBodyLimited(req: Request, maxBytes: number): Promise<unknown> {
-  const len = Number(req.headers.get("content-length") || 0);
-  if (len > maxBytes) throw new Error("Слишком большой запрос");
-  const text = await req.text();
-  if (text.length > maxBytes) throw new Error("Слишком большой запрос");
+  const declared = Number(req.headers.get("content-length") ?? NaN);
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new Error("Слишком большой запрос");
+  }
+
+  const reader = req.body?.getReader();
+  if (!reader) return {};
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // ignore cancel errors
+        }
+        throw new Error("Слишком большой запрос");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // already locked/cancelled
+    }
+  }
+
+  if (total === 0) return {};
+  const text = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
   if (!text) return {};
   return JSON.parse(text) as unknown;
 }
