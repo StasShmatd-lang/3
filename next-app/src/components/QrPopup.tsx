@@ -1,7 +1,8 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   open: boolean;
@@ -11,6 +12,8 @@ type Props = {
 };
 
 export function QrPopup({ open, onClose, joinUrl, title }: Props) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -20,9 +23,10 @@ export function QrPopup({ open, onClose, joinUrl, title }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Portal to <body>, so an animated parent can never pull the popup off-screen.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
@@ -43,13 +47,19 @@ export function QrPopup({ open, onClose, joinUrl, title }: Props) {
           {title || "Сканируй и войди"}
         </p>
         <div className="mt-5 inline-block rounded-2xl bg-white p-4">
-          <QRCodeSVG value={joinUrl} size={220} level="M" />
+          <QRCodeSVG
+            value={joinUrl}
+            size={320}
+            level="M"
+            style={{ display: "block", width: "min(320px, 60vh, 70vw)", height: "auto" }}
+          />
         </div>
         <p className="mt-4 text-sm text-[var(--mute)]">Наведи камеру — и сразу в игру</p>
         <button type="button" className="btn-ghost mt-6 w-full" onClick={onClose}>
           Закрыть
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
