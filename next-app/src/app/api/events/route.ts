@@ -33,8 +33,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Ошибка создания";
-    const status =
-      message.includes("секрет") || message.includes("Создание отключено") ? 401 : 400;
+    const status = message.includes("пароль") || message.includes("секрет") ? 401 : 400;
     return err(message, status);
   }
 }

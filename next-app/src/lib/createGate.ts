@@ -1,33 +1,23 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
-function safeEqualString(a: string, b: string) {
-  const aa = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (aa.length !== bb.length) return false;
-  return timingSafeEqual(aa, bb);
-}
+/** SHA-256 of the party create password (plaintext is not stored in the repo). */
+const CREATE_PASSWORD_SHA256 = Buffer.from(
+  "972fd5aaf5efdfb1bf24a05357f588ab7ce8be397e3a4c0e9ef2265baa853ff1",
+  "hex",
+);
 
-/** True only on this VM / local next without platform env. */
-export function isLocalDevRuntime() {
-  return !process.env.DATABASE_URL?.trim() && !process.env.CURSOR_APP_ID?.trim();
+function passwordMatches(provided: string): boolean {
+  const digest = createHash("sha256").update(provided, "utf8").digest();
+  if (digest.length !== CREATE_PASSWORD_SHA256.length) return false;
+  return timingSafeEqual(digest, CREATE_PASSWORD_SHA256);
 }
 
 /**
- * Gate hunt creation for a Public app: shared operator secret from env.
- * Local PGlite runs allow create without a secret so smoke tests work.
+ * Gate hunt creation: one fixed party password (no Cursor Secrets / env).
  */
 export function assertCanCreateEvent(provided: string | undefined): void {
-  const expected = process.env.EVENT_CREATE_SECRET?.trim() ?? "";
   const got = String(provided ?? "").trim();
-
-  if (expected) {
-    if (!got || !safeEqualString(got, expected)) {
-      throw new Error("Нужен секрет создания события");
-    }
-    return;
+  if (!got || !passwordMatches(got)) {
+    throw new Error("Неверный пароль");
   }
-
-  if (isLocalDevRuntime()) return;
-
-  throw new Error("Создание отключено: задайте EVENT_CREATE_SECRET в Secrets");
 }

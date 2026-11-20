@@ -159,7 +159,7 @@ export default function HomePage() {
           </div>
           <div>
             <label className="label" htmlFor="createSecret">
-              Секрет создания (на проде — из Secrets)
+              Пароль
             </label>
             <input
               id="createSecret"
@@ -168,7 +168,8 @@ export default function HomePage() {
               value={createSecret}
               autoComplete="off"
               onChange={(e) => setCreateSecret(e.target.value)}
-              placeholder="локально можно пусто"
+              placeholder="пароль для создания"
+              required
             />
           </div>
         </section>
